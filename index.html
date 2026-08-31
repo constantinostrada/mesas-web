@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pedir — Mesas</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Hacé tu pedido</h1>
+    <p class="sub">Elegí tu mesa y agregá lo que quieras.</p>
+  </header>
+  <main>
+    <div class="tarjeta">
+      <label for="mesa" class="sub">Mesa</label>
+      <select id="mesa"></select>
+    </div>
+    <div id="carta"></div>
+    <p id="msg" class="aviso"></p>
+  </main>
+  <div class="barra">
+    <span class="total crece">$<span id="total">0</span></span>
+    <button id="enviar" class="primario" disabled>Pedir</button>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
