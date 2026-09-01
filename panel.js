@@ -56,10 +56,15 @@ function pintar(todos, mesas) {
       return `
         <div class="tarjeta">
           <div class="fila">
-            <div class="crece"><strong>Mesa ${numero(p.mesa_id)}</strong> · ${p.id}</div>
+            <div class="mesa crece">
+              <span class="mesa-rotulo">Mesa</span>
+              <span class="mesa-numero">${numero(p.mesa_id)}</span>
+            </div>
             <span class="estado">${ETIQUETAS[p.estado]}</span>
           </div>
-          <div class="sub" style="margin:6px 0">${items}</div>
+          <!-- El id del pedido baja acá: hace falta para nombrarlo, pero si
+               compite con el número de mesa no se lee ninguno de los dos. -->
+          <div class="sub" style="margin:6px 0">${p.id} · ${items}</div>
           <div class="fila">
             <span class="precio crece">$${money(total(p))}</span>
             ${cancelar}
