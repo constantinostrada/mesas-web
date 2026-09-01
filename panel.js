@@ -7,7 +7,8 @@ const money = (n) => n.toLocaleString("es-AR");
 // los tres lados y nada avisa si falta uno.
 const TRANSICIONES = {
   pedido: ["en_preparacion", "cancelado"],
-  en_preparacion: ["servido", "cancelado"],
+  en_preparacion: ["listo_para_servir", "cancelado"],
+  listo_para_servir: ["servido", "cancelado"],
   servido: ["pagado"],
   pagado: [],
   cancelado: [],
@@ -15,6 +16,7 @@ const TRANSICIONES = {
 const ETIQUETAS = {
   pedido: "Pedido",
   en_preparacion: "En preparación",
+  listo_para_servir: "Listo para servir",
   servido: "Servido",
   pagado: "Pagado",
   cancelado: "Cancelado",
