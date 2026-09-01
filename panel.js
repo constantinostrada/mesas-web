@@ -30,6 +30,15 @@ async function traer(ruta) {
   return r.json();
 }
 
+// La acción que el mozo va a querer tocar en cada estado. Se resalta una sola
+// por tarjeta: si todos los botones pesan igual, ninguno guía.
+const ACCION_PRINCIPAL = {
+  pedido: "en_preparacion",
+  en_preparacion: "listo_para_servir",
+  listo_para_servir: "servido",
+  servido: "pagado",
+};
+
 function pintar(pedidos, mesas) {
   if (pedidos.length === 0) {
     $("pedidos").innerHTML = `<p class="aviso">Todavía no hay pedidos para este mozo.</p>`;
@@ -38,17 +47,26 @@ function pintar(pedidos, mesas) {
   const numero = (mesa_id) => mesas.find((m) => m.id === mesa_id)?.numero ?? "?";
   $("pedidos").innerHTML = pedidos
     .map((p) => {
+      // El plato ya está en la cocina esperando: es el único estado que el mozo
+      // tiene que cazar de un vistazo, porque es el único que le pide caminar.
+      const listo = p.estado === "listo_para_servir";
       // Sólo los botones de las transiciones LEGALES. Mostrar todos y que la
       // API rechace convierte una regla del dominio en un error del usuario.
       const acciones = (TRANSICIONES[p.estado] ?? [])
-        .map((e) => `<button data-id="${p.id}" data-a="${e}">${ETIQUETAS[e]}</button>`)
+        .map((e) => {
+          const clase = e === ACCION_PRINCIPAL[p.estado] ? ' class="primario"' : "";
+          return `<button${clase} data-id="${p.id}" data-a="${e}">${ETIQUETAS[e]}</button>`;
+        })
         .join(" ");
       const items = p.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(", ");
+      // La campana además del color: el panel se mira de reojo y con la pantalla
+      // al sol, donde el verde y el gris se parecen más de lo que uno cree.
+      const etiqueta = listo ? `🔔 ${ETIQUETAS[p.estado]}` : ETIQUETAS[p.estado];
       return `
-        <div class="tarjeta">
+        <div class="tarjeta${listo ? " listo" : ""}">
           <div class="fila">
             <div class="crece"><strong>Mesa ${numero(p.mesa_id)}</strong> · ${p.id}</div>
-            <span class="estado">${ETIQUETAS[p.estado]}</span>
+            <span class="estado${listo ? " listo" : ""}">${etiqueta}</span>
           </div>
           <div class="sub" style="margin:6px 0">${items}</div>
           <div class="fila">

@@ -1,10 +1,5 @@
 # Pendientes — mesas-web
 
-## Botón de "listo para servir" en el panel
-Cuando exista el estado intermedio, el mozo tiene que verlo y que la tarjeta se
-distinga de un vistazo.
-**Empieza en:** `mesas-shared`. **Toca también:** `mesas-api`.
-
 ## Nota por plato al pedir
 Un campo corto junto a cada plato, y mostrarla en el panel del mozo.
 **Empieza en:** `mesas-shared`. **Toca también:** `mesas-api`.

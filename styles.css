@@ -6,6 +6,11 @@
   --tenue: #a8a29e;
   --acento: #d97706;
   --ok: #65a30d;
+  /* El estado "listo para servir" es lo único que el mozo tiene que cazar de
+     un vistazo: va en verde y no en --acento, que ya es el color del botón
+     primario — si fueran el mismo, la tarjeta competiría con su propia acción. */
+  --listo: #84cc16;
+  --listo-fondo: #1d2410;
 }
 * { box-sizing: border-box; }
 body {
@@ -27,6 +32,14 @@ main { padding: 8px 16px; max-width: 640px; margin: 0 auto; }
   border-radius: 12px;
   padding: 14px;
   margin-bottom: 10px;
+}
+/* Un pedido esperando en la cocina. La franja izquierda se ve incluso con la
+   lista scrolleada a medias, que es como el mozo mira el teléfono. */
+.tarjeta.listo {
+  background: var(--listo-fondo);
+  border-color: var(--listo);
+  border-left: 5px solid var(--listo);
+  padding-left: 10px;
 }
 .fila { display: flex; align-items: center; gap: 12px; }
 .crece { flex: 1; min-width: 0; }
@@ -65,6 +78,10 @@ select {
   font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
   color: var(--tenue); border: 1px solid var(--borde);
   border-radius: 999px; padding: 3px 9px;
+}
+.estado.listo {
+  background: var(--listo); border-color: var(--listo);
+  color: #14200a; font-weight: 700;
 }
 .aviso { color: var(--tenue); text-align: center; padding: 32px 16px; }
 .error { color: #f87171; }
