@@ -61,6 +61,25 @@ select {
   display: flex; align-items: center; gap: 12px;
 }
 .total { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* El número de mesa es lo que el mozo busca, y muchas veces lo busca cruzando
+   el salón y con las manos ocupadas. A 48px la cifra mide ~34px de altura de
+   mayúscula (~9mm en pantalla): la regla de oficio pide ~1mm por cada 10cm de
+   distancia, así que a un metro se lee sin acercarse.
+
+   Sí, queda más grande que el h1. Es a propósito: en esta pantalla la jerarquía
+   la manda el uso, no el documento — el título se lee una vez, el número de
+   mesa en cada pedido y a las apuradas. */
+.mesa { display: flex; align-items: baseline; gap: 8px; }
+.mesa-rotulo { color: var(--tenue); font-size: 14px; }
+.mesa-numero {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  /* Que un "11" ocupe lo mismo que un "44": si no, la columna baila entre
+     tarjetas y el ojo pierde el ancla al recorrerlas de arriba abajo. */
+  font-variant-numeric: tabular-nums;
+}
 .estado {
   font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
   color: var(--tenue); border: 1px solid var(--borde);
