@@ -3,6 +3,7 @@
 A choice made and the reasoning behind it — the path taken over the alternatives.
 
 ## El cliente filtra sus pedidos en el navegador, no en la API
+
 **What:** La pantalla del cliente (`app.js`) trae `GET /pedidos` completo y lo
 cruza contra los ids que guardó en `localStorage` (`mesas-web:pedidos`, un
 array de ids por `mesa_id`). No pide un filtro a la API.
@@ -15,6 +16,7 @@ traer todo alcanza; el día que no, el filtro tiene que ir a la API.
 **Learned:** 2026-09-03, al implementar el estado en vivo para el cliente.
 
 ## La mesa elegida se persiste junto con los ids de pedidos
+
 **What:** `app.js` guarda la mesa en `localStorage` (`mesas-web:mesa`) y la
 restaura al abrir.
 **Why:** Los pedidos se guardan por mesa. Si al reabrir el navegador el
@@ -24,6 +26,7 @@ estuvieran guardados — la persistencia de los ids no sirve de nada sin esto.
 **Learned:** 2026-09-03.
 
 ## Los pedidos cerrados se atenúan y bajan, no se borran en vivo
+
 **What:** `servido`, `pagado` y `cancelado` se pintan en un bloque "Ya cerrados"
 abajo y atenuado. La purga de `localStorage` (ids que la API no conoce, y los
 `pagado`) corre UNA vez por mesa al primer ciclo del poll, no en cada ciclo.
@@ -34,3 +37,19 @@ esperando algo que nadie le va a traer. La purga en carga limpia igual, sin que
 nadie vea nada evaporarse.
 **Where:** `app.js` (`purgarViejos`, `purgadas`, `pintarMisPedidos`).
 **Learned:** 2026-09-03.
+
+## La pantalla del cliente (app.js) filtra 'sus pedidos' trayendo GET /pedidos completo y cr…
+
+What: La pantalla del cliente (app.js) filtra 'sus pedidos' trayendo GET /pedidos completo y cruzando con los ids guardados en localStorage, en vez de pedirle a la API que filtre por mesa. · Why: mesas-api no soporta ?mesa_id= en GET /pedidos (sólo ?mozo_id=); la alternativa de mostrar todos los pedidos de la mesa fue descartada porque el intent pedía 'sus pedidos' de esta persona/navegador, no los de otros comensales. · Where: app.js. · Learned: con muchas mesas/pedidos abiertos este filtrado client-side no escala; queda pendiente agregar el filtro server-side en mesas-api. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-0 -->
+
+## app.js persiste en localStorage la mesa elegida (mesas-web:mesa) y los ids de pedidos por…
+
+What: app.js persiste en localStorage la mesa elegida (mesas-web:mesa) y los ids de pedidos por mesa (mesas-web:pedidos), restaurando ambos al cargar. · Why: sin guardar la mesa, el <select> volvía a la primera mesa al reabrir el navegador y los pedidos guardados no se mostraban aunque los ids siguieran ahí. · Where: app.js. · Learned: todo acceso a localStorage debe ser tolerante a fallos (try/catch) porque en modo privado del navegador puede lanzar. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-1 -->
+
+## La purga de ids de localStorage (pedidos en estado 'pagado', o que la API ya no conoce) c…
+
+What: La purga de ids de localStorage (pedidos en estado 'pagado', o que la API ya no conoce) corre una sola vez al cargar la pantalla del cliente, no en cada ciclo de polling. · Why: el store de mesas-api es en memoria (si reinicia, ids quedan colgados) pero purgar 'pagado' en cada ciclo hacía desaparecer la tarjeta de golpe mientras el cliente la estaba mirando, violando el requisito de que un pedido servido/pagado no desaparezca abruptamente. · Where: app.js. · Learned: separar 'cuándo se olvida un pedido' (al recargar) de 'cuándo se repinta' (cada poll) evita que un cambio de estado en vivo borre contenido que el usuario está viendo. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-2 -->
+
+## El mensaje estático "Pedido X enviado" que mostraba la pantalla del cliente al confirmar…
+
+What: El mensaje estático "Pedido X enviado" que mostraba la pantalla del cliente al confirmar un pedido fue eliminado por completo; la lista de pedidos con estado lo reemplaza, y el mozo asignado (que antes se mencionaba una sola vez en ese mensaje y se perdía) ahora es un campo persistente de cada tarjeta de pedido, visible también después de recargar. · Why: — · Where: app.js, index.html. · Learned: cualquier dato que sólo vivía en un mensaje de confirmación efímero desaparecía al recargar; moverlo a la tarjeta persistida en localStorage lo hace sobrevivir junto con el resto del estado del pedido. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-7 -->
