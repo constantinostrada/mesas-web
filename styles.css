@@ -83,5 +83,18 @@ select {
   background: var(--listo); border-color: var(--listo);
   color: #14200a; font-weight: 700;
 }
+/* Un pedido que ya llegó (o que no va a llegar): sigue en pantalla porque el
+   cliente puede estar mirándolo, pero atenuado y abajo — el lugar principal es
+   para lo que todavía está esperando. */
+.tarjeta.cerrado { opacity: .55; }
+/* Cancelado no es un estado más: si se lee como los otros, el cliente sigue
+   esperando algo que nadie le va a traer. */
+.estado.cancelado { color: #f87171; border-color: #f87171; }
+h2 { margin: 18px 0 8px; font-size: 15px; letter-spacing: -0.01em; }
+.subtitulo { margin: 14px 0 8px; }
+/* Un dato al margen —el mozo asignado, "sin conexión"—: tiene que estar ahí
+   para quien lo busque y no competir con el estado del pedido. */
+.nota { color: var(--tenue); font-size: 12px; }
+
 .aviso { color: var(--tenue); text-align: center; padding: 32px 16px; }
 .error { color: #f87171; }

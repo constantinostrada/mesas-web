@@ -14,8 +14,12 @@ Necesita `mesas-api` corriendo en `localhost:4000` (configurable con
 
 ## Pantallas
 
-- `index.html` — el cliente elige mesa, arma el pedido y lo manda
+- `index.html` — el cliente elige mesa, arma el pedido y sigue su estado
 - `panel.html` — el mozo ve sus pedidos y cambia el estado
+
+Las dos refrescan solas cada 4s (poll, sin websockets) y comparten el
+vocabulario de estados en `estados.js`. La del cliente guarda los ids de sus
+pedidos en `localStorage` para no perderlos al recargar.
 
 Mobile-first: el cliente pide desde el teléfono, sentado. Las acciones van
 abajo, al alcance del pulgar.

@@ -1,26 +1,7 @@
+import { TRANSICIONES, ETIQUETAS } from "./estados.js";
 const API = new URL(location.href).searchParams.get("api") ?? "http://localhost:4000";
 const $ = (id) => document.getElementById(id);
 const money = (n) => n.toLocaleString("es-AR");
-
-// Copia del contrato de mesas-shared, igual que en la API. Duplicada hasta que
-// ese repo se publique como paquete: hoy un estado nuevo hay que agregarlo en
-// los tres lados y nada avisa si falta uno.
-const TRANSICIONES = {
-  pedido: ["en_preparacion", "cancelado"],
-  en_preparacion: ["listo_para_servir", "cancelado"],
-  listo_para_servir: ["servido", "cancelado"],
-  servido: ["pagado"],
-  pagado: [],
-  cancelado: [],
-};
-const ETIQUETAS = {
-  pedido: "Pedido",
-  en_preparacion: "En preparación",
-  listo_para_servir: "Listo para servir",
-  servido: "Servido",
-  pagado: "Pagado",
-  cancelado: "Cancelado",
-};
 
 const total = (p) => p.items.reduce((t, i) => t + i.precio_unitario * i.cantidad, 0);
 

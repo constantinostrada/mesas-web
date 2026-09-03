@@ -16,6 +16,16 @@
       <label for="mesa" class="sub">Mesa</label>
       <select id="mesa"></select>
     </div>
+    <!-- Arriba de la carta: una vez que pidió, lo primero que el cliente quiere
+         saber es cómo viene lo suyo. Oculta mientras no pidió nada. -->
+    <section id="mis-pedidos" hidden>
+      <div class="fila">
+        <h2 class="crece">Tus pedidos</h2>
+        <span id="conexion" class="nota"></span>
+      </div>
+      <div id="activos"></div>
+      <div id="cerrados"></div>
+    </section>
     <div id="carta"></div>
     <p id="msg" class="aviso"></p>
   </main>
