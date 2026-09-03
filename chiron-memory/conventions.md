@@ -50,3 +50,18 @@ la otra.
 **Learned:** 2026-09-03. Con esto la tarjeta desaparece sola en el poll de 4s
 —sin recargar— incluso si la cancelación la disparó otro (el cliente, la API);
 no hace falta nada más que el filtro, el polling ya estaba.
+
+## Los filtros de `GET /pedidos` se acumulan en AND, y un id inexistente es 404
+
+**What:** `GET /pedidos` acepta `?mozo_id=` y `?mesa_id=`, combinables: se
+aplican los dos en AND, y cualquiera de los dos puede faltar. Un `mesa_id` que
+no existe responde 404 `{"error":"La mesa no existe"}` — el mismo código y el
+mismo texto que ya usaba `POST /pedidos`.
+**Why:** Un id inexistente no es "una mesa sin pedidos": devolver `[]` haría que
+la pantalla del cliente mostrara "todavía nada" para siempre sin que nadie se
+enterara del typo. Y filtros que se acumulan evitan un endpoint nuevo cuando
+haga falta cruzar dos criterios ("los de esta mesa que atiende este mozo").
+**Where:** `mesas-api/src/server.js` (`GET /pedidos`), `mesas-api/README.md`.
+**Learned:** 2026-09-03. Al agregar un filtro nuevo a este endpoint, validarlo
+contra el store y reusar el 404 que ya define `POST /pedidos` para esa entidad,
+en vez de inventar una redacción propia.

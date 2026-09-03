@@ -9,46 +9,19 @@ const pedido = new Map(); // plato_id -> cantidad
 
 const money = (n) => n.toLocaleString("es-AR");
 const total = (p) => p.items.reduce((t, i) => t + i.precio_unitario * i.cantidad, 0);
+// 24h explícito: es-AR devuelve "11:53 a. m." según el navegador, y nadie
+// mira la hora de un pedido en formato de 12 horas.
+const hora = (ms) =>
+  new Date(ms).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-// Los ids de los pedidos que hizo ESTE navegador, por mesa. Sin esto, recargar
-// o bloquear el celular perdía toda referencia a lo pedido: la API no tiene
-// noción de "cliente" y no hay con qué volver a encontrarlos.
-const CLAVE_PEDIDOS = "mesas-web:pedidos";
-// La mesa elegida también se guarda: si al reabrir el navegador el select
-// volviera a la primera mesa, el cliente no vería sus pedidos aunque estén.
+// La mesa elegida se guarda: es lo único que hace falta recordar para que al
+// reabrir el navegador el cliente siga viendo sus pedidos. Quién pidió qué lo
+// sabe la API por mesa, así que no hay nada más que persistir acá.
 const CLAVE_MESA = "mesas-web:mesa";
 
 // localStorage puede fallar (modo privado en iOS, cuota llena). Que el cliente
-// no pueda pedir porque no se pudo guardar un id sería mucho peor que perder la
-// lista al recargar, así que todo acceso es tolerante.
-function leerGuardados() {
-  try {
-    const crudo = JSON.parse(localStorage.getItem(CLAVE_PEDIDOS) ?? "{}");
-    return crudo && typeof crudo === "object" ? crudo : {};
-  } catch {
-    return {};
-  }
-}
-
-function guardar(porMesa) {
-  try {
-    localStorage.setItem(CLAVE_PEDIDOS, JSON.stringify(porMesa));
-  } catch {
-    /* sin persistencia: la sesión sigue funcionando igual */
-  }
-}
-
-function recordarPedido(mesa_id, id) {
-  const porMesa = leerGuardados();
-  const ids = porMesa[mesa_id] ?? [];
-  if (!ids.includes(id)) porMesa[mesa_id] = [...ids, id];
-  guardar(porMesa);
-}
-
-function idsDeMesa(mesa_id) {
-  return leerGuardados()[mesa_id] ?? [];
-}
-
+// no pueda pedir porque no se pudo guardar la mesa sería mucho peor que volver
+// a elegirla al recargar, así que el acceso es tolerante.
 function leerMesa() {
   try {
     return localStorage.getItem(CLAVE_MESA);
@@ -65,8 +38,10 @@ function guardarMesa(mesa_id) {
   }
 }
 
-// El último estado conocido de cada pedido, por id. Si un ciclo del poll falla,
-// se repinta desde acá en vez de vaciar la pantalla o taparla con un error.
+// El último estado conocido de cada pedido, por id. Se acumula y nunca se
+// borra, y eso hace dos cosas: si un ciclo del poll falla se repinta desde acá
+// en vez de vaciar la pantalla, y el pedido que se acaba de enviar no puede
+// desaparecer porque llegue tarde la respuesta de un poll anterior a él.
 const conocidos = new Map();
 
 async function traer(ruta) {
@@ -125,10 +100,16 @@ function tarjetaPedido(p, nombreMozo) {
   // A quién preguntarle si algo no cierra. Antes esto se decía una sola vez en
   // el mensaje de "enviado" y se perdía en la recarga siguiente.
   const mozo = p.mozo_id ? `Te atiende ${nombreMozo(p.mozo_id)}` : "Sin mozo asignado todavía";
+  // La hora va junto al id: es lo que le deja al cliente distinguir un pedido
+  // de otro y medir cuánto lleva esperando; el id sólo sirve para nombrárselo
+  // al mozo.
   return `
     <div class="tarjeta${cerrado ? " cerrado" : ""}${listo ? " listo" : ""}">
       <div class="fila">
-        <div class="crece"><strong>Pedido ${p.id}</strong></div>
+        <div class="crece">
+          <strong>Pedido ${p.id}</strong>
+          <span class="nota">${hora(p.creado_en)}</span>
+        </div>
         <span class="estado${clase}">${ETIQUETAS[p.estado] ?? p.estado}</span>
       </div>
       <div class="sub" style="margin:6px 0">${items}</div>
@@ -142,9 +123,7 @@ function tarjetaPedido(p, nombreMozo) {
 function pintarMisPedidos(mesa_id, nombreMozo) {
   // Se pinta desde `conocidos`, no desde la última respuesta: así un ciclo
   // fallido no borra nada de la pantalla.
-  const mios = idsDeMesa(mesa_id)
-    .map((id) => conocidos.get(id))
-    .filter(Boolean);
+  const mios = [...conocidos.values()].filter((p) => p.mesa_id === mesa_id);
 
   $("mis-pedidos").hidden = mios.length === 0;
   if (mios.length === 0) {
@@ -166,38 +145,14 @@ function pintarMisPedidos(mesa_id, nombreMozo) {
     : "";
 }
 
-// La API no filtra pedidos por mesa (`GET /pedidos` sólo acepta ?mozo_id=), así
-// que se traen todos y se cruzan con los ids guardados. Con un salón chico
-// alcanza; el día que no, el filtro tiene que ir a la API.
+// Los pedidos de LA MESA, no los de este navegador: si dos personas sentadas
+// juntas piden cada una desde su teléfono, las dos tienen que ver lo que va a
+// llegar a la mesa. Y como la mesa alcanza para encontrarlos, recargar la
+// página no pierde nada.
 async function refrescarPedidos(mesa_id, nombreMozo) {
-  const { pedidos } = await traer("/pedidos");
+  const { pedidos } = await traer(`/pedidos?mesa_id=${encodeURIComponent(mesa_id)}`);
   for (const p of pedidos) conocidos.set(p.id, p);
-
-  if (!purgadas.has(mesa_id)) {
-    purgadas.add(mesa_id);
-    purgarViejos(mesa_id, new Set(pedidos.map((p) => p.id)));
-  }
-
   pintarMisPedidos(mesa_id, nombreMozo);
-}
-
-// Se olvidan los ids que ya no tienen para qué volver: los que la API no
-// conoce (su store es en memoria, un reinicio los borra y quedarían colgados
-// para siempre) y los pagados, que son una visita terminada.
-//
-// Corre UNA vez por mesa, al primer ciclo, y no en cada poll: si purgara
-// siempre, el pedido que el mozo acaba de marcar pagado se borraría de la
-// pantalla en el segundo siguiente, delante del cliente que lo está mirando.
-// Cerrado se ve abajo y atenuado hasta la próxima vez que abra la pantalla.
-const purgadas = new Set();
-
-function purgarViejos(mesa_id, vivos) {
-  const porMesa = leerGuardados();
-  const ids = porMesa[mesa_id] ?? [];
-  const quedan = ids.filter((id) => vivos.has(id) && conocidos.get(id).estado !== "pagado");
-  if (quedan.length === ids.length) return;
-  porMesa[mesa_id] = quedan;
-  guardar(porMesa);
 }
 
 async function main() {
@@ -257,7 +212,9 @@ async function main() {
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
-        recordarPedido(mesa_id, data.pedido.id);
+        // Se muestra con la respuesta del POST y no esperando el próximo poll:
+        // cuatro segundos sin ver el pedido que acabás de mandar se sienten
+        // como que no salió.
         conocidos.set(data.pedido.id, data.pedido);
         // Sin mensaje de "enviado": el pedido aparece en la lista de arriba con
         // su estado, que es más de lo que decía el aviso y no se pierde.

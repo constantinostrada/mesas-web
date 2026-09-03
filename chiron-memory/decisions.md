@@ -2,53 +2,62 @@
 
 A choice made and the reasoning behind it — the path taken over the alternatives.
 
-## El cliente filtra sus pedidos en el navegador, no en la API
+## Lo que ve el cliente lo define la MESA, no el navegador
 
-**What:** La pantalla del cliente (`app.js`) trae `GET /pedidos` completo y lo
-cruza contra los ids que guardó en `localStorage` (`mesas-web:pedidos`, un
-array de ids por `mesa_id`). No pide un filtro a la API.
-**Why:** `GET /pedidos` en `mesas-api` sólo acepta `?mozo_id=`; no hay filtro
-por mesa ni endpoint por id. Y la API no tiene noción de "cliente": dos
-personas en la misma mesa son indistinguibles para ella, así que el recorte
-"mis pedidos" sólo puede vivir en el navegador que los hizo. Con un salón chico
-traer todo alcanza; el día que no, el filtro tiene que ir a la API.
-**Where:** `app.js` (`refrescarPedidos`, `idsDeMesa`).
-**Learned:** 2026-09-03, al implementar el estado en vivo para el cliente.
+**What:** La pantalla del cliente pide `GET /pedidos?mesa_id=<mesa>` y muestra
+todos los pedidos de esa mesa. El filtro por mesa vive en la API (combinable
+con `?mozo_id=` en AND; una mesa inexistente da 404, igual que `POST /pedidos`).
+**Why:** La API no tiene noción de "cliente", y la primera versión resolvió eso
+guardando los ids propios en `localStorage` y cruzándolos contra `GET /pedidos`
+entero. Se descartó: una mesa es compartida —si dos comensales piden cada uno
+desde su teléfono, los dos tienen que ver lo que va a llegar a la mesa— y con
+la mesa como identidad no hay nada que persistir ni que quede colgado cuando el
+store en memoria de la API se reinicia. Traer el salón completo para descartar
+casi todo tampoco escalaba.
+**Where:** `app.js` (`refrescarPedidos`), `mesas-api/src/server.js`
+(`GET /pedidos`).
+**Learned:** 2026-09-03. El costo aceptado es que los pedidos de una visita
+anterior a la misma mesa siguen visibles (atenuados, en "Ya cerrados") hasta
+que el store de la API se reinicie: no hay concepto de "cerrar la mesa".
 
-## La mesa elegida se persiste junto con los ids de pedidos
+## La mesa elegida es lo único que la pantalla del cliente persiste
 
 **What:** `app.js` guarda la mesa en `localStorage` (`mesas-web:mesa`) y la
-restaura al abrir.
-**Why:** Los pedidos se guardan por mesa. Si al reabrir el navegador el
-`<select>` volviera a la primera mesa, el cliente no vería sus pedidos aunque
-estuvieran guardados — la persistencia de los ids no sirve de nada sin esto.
+restaura al abrir. Nada más se persiste.
+**Why:** Con el seguimiento filtrado por mesa en la API, la mesa es la única
+llave que hace falta para volver a encontrar los pedidos: si al reabrir el
+navegador el `<select>` volviera a la primera mesa, el cliente no vería nada
+aunque sus pedidos siguieran abiertos.
 **Where:** `app.js` (`leerMesa`, `guardarMesa`).
-**Learned:** 2026-09-03.
+**Learned:** 2026-09-03. El acceso va siempre en `try/catch`: en modo privado
+`localStorage` puede lanzar, y no poder pedir por no haber podido guardar la
+mesa sería mucho peor que volver a elegirla.
 
 ## Los pedidos cerrados se atenúan y bajan, no se borran en vivo
 
 **What:** `servido`, `pagado` y `cancelado` se pintan en un bloque "Ya cerrados"
-abajo y atenuado. La purga de `localStorage` (ids que la API no conoce, y los
-`pagado`) corre UNA vez por mesa al primer ciclo del poll, no en cada ciclo.
-**Why:** Si purgara en cada ciclo, el pedido que el mozo acaba de marcar pagado
-se borraría de la pantalla al segundo siguiente, delante del cliente que lo
-está mirando. Un `cancelado` que desaparece es peor todavía: el cliente queda
-esperando algo que nadie le va a traer. La purga en carga limpia igual, sin que
-nadie vea nada evaporarse.
-**Where:** `app.js` (`purgarViejos`, `purgadas`, `pintarMisPedidos`).
-**Learned:** 2026-09-03.
+abajo y atenuado, nunca se sacan de la pantalla mientras el cliente la tiene
+abierta.
+**Why:** Un pedido que desaparece de golpe delante de quien lo está mirando es
+peor que uno atenuado: con `cancelado` el cliente queda esperando algo que
+nadie le va a traer, y con `pagado` parece que se perdió el consumo. Atenuarlos
+los saca del foco sin sacarlos de la vista.
+**Where:** `app.js` (`pintarMisPedidos`, `esCerrado` en `estados.js`).
+**Learned:** 2026-09-03. Con el filtro por mesa en la API ya no hay ninguna
+purga de `localStorage` que administrar: la lista se reconstruye en cada poll
+desde lo que la API dice de esa mesa.
 
-## La pantalla del cliente (app.js) filtra 'sus pedidos' trayendo GET /pedidos completo y cr…
+## La pantalla del cliente pide GET /pedidos?mesa_id= y muestra todos los pedidos de la mesa
 
-What: La pantalla del cliente (app.js) filtra 'sus pedidos' trayendo GET /pedidos completo y cruzando con los ids guardados en localStorage, en vez de pedirle a la API que filtre por mesa. · Why: mesas-api no soporta ?mesa_id= en GET /pedidos (sólo ?mozo_id=); la alternativa de mostrar todos los pedidos de la mesa fue descartada porque el intent pedía 'sus pedidos' de esta persona/navegador, no los de otros comensales. · Where: app.js. · Learned: con muchas mesas/pedidos abiertos este filtrado client-side no escala; queda pendiente agregar el filtro server-side en mesas-api. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-0 -->
+What: La pantalla del cliente (app.js) pide `GET /pedidos?mesa_id=<mesa>` y muestra todos los pedidos de esa mesa, en vez de traer el salón entero y cruzarlo contra ids guardados en localStorage. · Why: la mesa es compartida (dos comensales que piden desde su teléfono tienen que ver lo mismo) y filtrar en la API evita traer todo para descartar casi todo. · Where: app.js, mesas-api/src/server.js. · Learned: reemplaza a la versión anterior, que filtraba en el navegador porque la API todavía no soportaba ?mesa_id=. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-0 -->
 
-## app.js persiste en localStorage la mesa elegida (mesas-web:mesa) y los ids de pedidos por…
+## app.js persiste en localStorage sólo la mesa elegida (mesas-web:mesa)
 
-What: app.js persiste en localStorage la mesa elegida (mesas-web:mesa) y los ids de pedidos por mesa (mesas-web:pedidos), restaurando ambos al cargar. · Why: sin guardar la mesa, el <select> volvía a la primera mesa al reabrir el navegador y los pedidos guardados no se mostraban aunque los ids siguieran ahí. · Where: app.js. · Learned: todo acceso a localStorage debe ser tolerante a fallos (try/catch) porque en modo privado del navegador puede lanzar. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-1 -->
+What: app.js persiste en localStorage únicamente la mesa elegida (mesas-web:mesa) y la restaura al cargar; los ids de pedidos ya no se guardan. · Why: con el filtro por mesa en la API, la mesa es la única llave que hace falta para reencontrar los pedidos, y sin guardarla el <select> volvía a la primera mesa al reabrir el navegador. · Where: app.js. · Learned: todo acceso a localStorage debe ser tolerante a fallos (try/catch) porque en modo privado del navegador puede lanzar. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-1 -->
 
-## La purga de ids de localStorage (pedidos en estado 'pagado', o que la API ya no conoce) c…
+## Ya no hay purga de ids en localStorage: la lista de pedidos se reconstruye por mesa en cada poll
 
-What: La purga de ids de localStorage (pedidos en estado 'pagado', o que la API ya no conoce) corre una sola vez al cargar la pantalla del cliente, no en cada ciclo de polling. · Why: el store de mesas-api es en memoria (si reinicia, ids quedan colgados) pero purgar 'pagado' en cada ciclo hacía desaparecer la tarjeta de golpe mientras el cliente la estaba mirando, violando el requisito de que un pedido servido/pagado no desaparezca abruptamente. · Where: app.js. · Learned: separar 'cuándo se olvida un pedido' (al recargar) de 'cuándo se repinta' (cada poll) evita que un cambio de estado en vivo borre contenido que el usuario está viendo. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-2 -->
+What: Se eliminó la purga de ids de localStorage (pedidos 'pagado' o que la API ya no conoce) que corría al cargar la pantalla del cliente. · Why: dejó de tener sentido al pasar el filtro a la API: no se guardan ids, así que no hay nada que pueda quedar colgado cuando el store en memoria de mesas-api se reinicia. La regla que sí se mantiene es que un pedido servido/pagado/cancelado no desaparece de la pantalla, se atenúa. · Where: app.js. · Learned: cuando el servidor puede responder 'qué hay ahora', el cliente no necesita administrar el olvido de lo que ya no existe. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-2 -->
 
 ## El mensaje estático "Pedido X enviado" que mostraba la pantalla del cliente al confirmar…
 
