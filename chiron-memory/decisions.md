@@ -53,3 +53,40 @@ What: La purga de ids de localStorage (pedidos en estado 'pagado', o que la API 
 ## El mensaje estático "Pedido X enviado" que mostraba la pantalla del cliente al confirmar…
 
 What: El mensaje estático "Pedido X enviado" que mostraba la pantalla del cliente al confirmar un pedido fue eliminado por completo; la lista de pedidos con estado lo reemplaza, y el mozo asignado (que antes se mencionaba una sola vez en ese mensaje y se perdía) ahora es un campo persistente de cada tarjeta de pedido, visible también después de recargar. · Why: — · Where: app.js, index.html. · Learned: cualquier dato que sólo vivía en un mensaje de confirmación efímero desaparecía al recargar; moverlo a la tarjeta persistida en localStorage lo hace sobrevivir junto con el resto del estado del pedido. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-7 -->
+
+## Cancelar es su propio endpoint (`POST /pedidos/:id/cancelar`), no un `/estado` más
+
+**What:** La cancelación se expone como `POST /pedidos/:id/cancelar` en
+`mesas-api`, aunque `POST /pedidos/:id/estado` con `{"estado":"cancelado"}`
+haría lo mismo (la transición ya era legal). El endpoint nuevo responde el
+mismo 409 y con la misma redacción que `/estado`
+(`No se puede pasar de "<origen>" a "cancelado"`).
+**Why:** Quien cancela no está eligiendo el próximo estado del pedido, está
+dándolo de baja: no tiene por qué saber que "cancelado" es un estado de la
+máquina ni cómo se escribe. Reusar el mensaje de error, en cambio, es
+deliberado — para quien llama es la misma regla del dominio rechazando, y dos
+textos distintos para lo mismo confunden.
+**Where:** `mesas-api/src/server.js`, `mesas-api/README.md`;
+`mesas-web/panel.js` (el botón elige ruta según el destino).
+**Learned:** 2026-09-03. El botón de cancelar del panel se sigue armando solo
+desde `TRANSICIONES` (no hay lista aparte de acciones), pero se rotula
+"Cancelar" y no `ETIQUETAS.cancelado` ("Cancelado"): un botón dice lo que hace,
+no a qué estado lleva.
+
+## "Se cancela mientras siga en cocina" se deriva de las transiciones, no de una lista
+
+**What:** `esCancelable(estado)` en `mesas-shared/src/estados.js` (replicada en
+`mesas-api/src/estados.js`) es `puedePasar(estado, "cancelado")`, no una lista
+de estados cancelables. Cancelable en `pedido`, `en_preparacion` y
+`listo_para_servir`; no en `servido`, `pagado` ni `cancelado`.
+**Why:** Mismo criterio que `esCerrado` en `mesas-web/estados.js`: si la regla
+se escribe como lista, un estado nuevo agregado a `TRANSICIONES` queda afuera
+por olvido, o uno que no debía se vuelve cancelable. La tabla de transiciones
+ya es la fuente de verdad; la función sólo le pone nombre a la regla para que
+la API no tenga que leerla a ojo.
+**Where:** `mesas-shared/src/estados.js`, `mesas-api/src/estados.js`.
+**Learned:** 2026-09-03. El work order pedía "sólo se puede cancelar en estados
+previos a `en_camino`", pero `en_camino` NO existe en esta máquina de estados:
+el estado en que el plato ya salió de la cocina y llegó a la mesa es `servido`,
+y se implementó con ese mapeo (`en_camino` ≡ `servido`). `listo_para_servir` sí
+es cancelable: el plato está emplatado pero todavía en la cocina.

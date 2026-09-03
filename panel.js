@@ -20,7 +20,12 @@ const ACCION_PRINCIPAL = {
   servido: "pagado",
 };
 
-function pintar(pedidos, mesas) {
+function pintar(todos, mesas) {
+  // Un pedido cancelado ya no es trabajo del mozo, así que sale de la pantalla
+  // en el primer poll posterior a la cancelación, sin que tenga que recargar.
+  // Se filtra acá y no en `GET /pedidos` porque la pantalla del cliente sí
+  // tiene que mostrarlo: es cómo se entera de que su plato no viene.
+  const pedidos = todos.filter((p) => p.estado !== "cancelado");
   if (pedidos.length === 0) {
     $("pedidos").innerHTML = `<p class="aviso">Todavía no hay pedidos para este mozo.</p>`;
     return;
@@ -36,7 +41,10 @@ function pintar(pedidos, mesas) {
       const acciones = (TRANSICIONES[p.estado] ?? [])
         .map((e) => {
           const clase = e === ACCION_PRINCIPAL[p.estado] ? ' class="primario"' : "";
-          return `<button${clase} data-id="${p.id}" data-a="${e}">${ETIQUETAS[e]}</button>`;
+          // El botón dice lo que hace, no a qué estado lleva: "Cancelar", no
+          // "Cancelado". Los demás coinciden con su etiqueta y no hace falta.
+          const rotulo = e === "cancelado" ? "Cancelar" : ETIQUETAS[e];
+          return `<button${clase} data-id="${p.id}" data-a="${e}">${rotulo}</button>`;
         })
         .join(" ");
       const items = p.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(", ");
@@ -79,12 +87,16 @@ async function main() {
     $("pedidos").addEventListener("click", async (e) => {
       const b = e.target.closest("button[data-a]");
       if (!b) return;
+      const destino = b.dataset.a;
+      // Cancelar va por su propio endpoint y sin destino: no es un cambio de
+      // estado más, es dar el pedido de baja.
+      const accion = destino === "cancelado" ? "cancelar" : "estado";
       b.disabled = true;
       try {
-        const r = await fetch(`${API}/pedidos/${b.dataset.id}/estado`, {
+        const r = await fetch(`${API}/pedidos/${b.dataset.id}/${accion}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ estado: b.dataset.a }),
+          body: JSON.stringify(destino === "cancelado" ? {} : { estado: destino }),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);

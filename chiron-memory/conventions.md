@@ -34,3 +34,19 @@ What: La pantalla del cliente actualiza sola con el mismo patrón que panel.js: 
 ## En la lista de pedidos del cliente, los estados activos (pedido, en_preparacion, listo_pa…
 
 What: En la lista de pedidos del cliente, los estados activos (pedido, en_preparacion, listo_para_servir) se muestran arriba y destacados, y los cerrados (servido, pagado, cancelado) bajan a un bloque atenuado abajo en vez de desaparecer. · Why: — · Where: app.js, index.html, styles.css (reusa .estado y .estado.listo existentes; agrega estilo atenuado para cerrados y chip rojo para cancelado). <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-5 -->
+
+## El panel del mozo filtra los cancelados en el navegador, no en la API
+
+**What:** `panel.js` descarta los pedidos en `cancelado` antes de pintar
+(`todos.filter(...)` al entrar a `pintar`). `GET /pedidos` los sigue
+devolviendo.
+**Why:** Las dos pantallas quieren cosas opuestas del mismo estado: para el
+mozo un pedido cancelado es trabajo que ya no existe y tiene que desaparecer;
+para el cliente es cómo se entera de que su plato no viene, y se muestra
+atenuado en "Ya cerrados". Filtrar en la API serviría a una pantalla y rompería
+la otra.
+**Where:** `panel.js` (`pintar`), contra `app.js` (`esCerrado`,
+`pintarMisPedidos`).
+**Learned:** 2026-09-03. Con esto la tarjeta desaparece sola en el poll de 4s
+—sin recargar— incluso si la cancelación la disparó otro (el cliente, la API);
+no hace falta nada más que el filtro, el polling ya estaba.
