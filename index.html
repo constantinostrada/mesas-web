@@ -16,13 +16,14 @@
       <label for="mesa" class="sub">Mesa</label>
       <select id="mesa"></select>
     </div>
+    <!-- Mismo lugar relativo que en el panel del mozo, y afuera de #mis-pedidos:
+         el aviso tiene que verse aunque todavía no haya pedidos, y el espacio
+         queda reservado para que la lista no se mueva al aparecer o irse. -->
+    <p id="conexion" class="conexion" role="status"></p>
     <!-- Arriba de la carta: una vez que pidió, lo primero que el cliente quiere
          saber es cómo viene lo suyo. Oculta mientras no pidió nada. -->
     <section id="mis-pedidos" hidden>
-      <div class="fila">
-        <h2 class="crece">Tus pedidos</h2>
-        <span id="conexion" class="nota"></span>
-      </div>
+      <h2>Tus pedidos</h2>
       <div id="activos"></div>
       <div id="cerrados"></div>
     </section>

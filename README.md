@@ -18,9 +18,13 @@ Necesita `mesas-api` corriendo en `localhost:4000` (configurable con
 - `panel.html` — el mozo ve sus pedidos y cambia el estado
 
 Las dos refrescan solas cada 4s (poll, sin websockets) y comparten el
-vocabulario de estados en `estados.js`. La del cliente pide los pedidos de su
-mesa (`GET /pedidos?mesa_id=`) y guarda la mesa elegida en `localStorage`, así
-que recargar no pierde el seguimiento.
+vocabulario de estados en `estados.js` y el aviso de conexión cortada en
+`conexion.js`: si tres ciclos seguidos fallan, una franja arriba de la lista
+—reservada siempre, para que nada se mueva— dice desde cuándo lo que se está
+mirando dejó de actualizarse, y se va sola con el primer refresco bueno.
+
+La del cliente pide los pedidos de su mesa (`GET /pedidos?mesa_id=`) y guarda
+la mesa elegida en `localStorage`, así que recargar no pierde el seguimiento.
 
 Mobile-first: el cliente pide desde el teléfono, sentado. Las acciones van
 abajo, al alcance del pulgar.

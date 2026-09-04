@@ -96,5 +96,25 @@ h2 { margin: 18px 0 8px; font-size: 15px; letter-spacing: -0.01em; }
    para quien lo busque y no competir con el estado del pedido. */
 .nota { color: var(--tenue); font-size: 12px; }
 
+/* La franja del aviso de conexión, arriba de la lista en las dos pantallas. El
+   alto está reservado siempre —incluso vacía— para que aparecer o irse no corra
+   ni una tarjeta de lugar; medir la posición de la primera tarjeta antes, durante
+   y después del corte tiene que dar lo mismo. 20px es una línea de .nota. */
+.conexion {
+  min-height: 20px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 20px;
+  /* El aviso es información al margen, no un cartel: no lleva fondo ni borde,
+     y por eso tampoco tapa nada cuando aparece. */
+  color: var(--tenue);
+}
+/* Más angosto que cualquier celular actual (320px es el mínimo): ahí la frase
+   entera se va a dos líneas y la franja crecería el doble, que es exactamente
+   el salto que el aviso no puede provocar. Se acorta el texto, no el alto. */
+@media (max-width: 319px) {
+  .conexion .detalle { display: none; }
+}
+
 .aviso { color: var(--tenue); text-align: center; padding: 32px 16px; }
 .error { color: #f87171; }

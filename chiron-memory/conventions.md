@@ -17,19 +17,22 @@ explícitamente que el cliente vea las mismas etiquetas que el mozo.
 ## Polling cada 4s con setInterval, sin websockets, en las dos pantallas
 
 **What:** Cliente y panel refrescan con `setInterval(..., 4000)` y una guarda
-de un ciclo a la vez (`enVuelo`). Si un ciclo falla no se repinta: se mantiene
-el último estado conocido y se avisa al margen ("sin conexión"), sin tapar la
-lista.
+de un ciclo a la vez (`enVuelo`, sólo en el cliente). Si un ciclo falla no se
+repinta: se mantiene el último estado conocido y el corte se avisa al margen
+con `conexion.js` (ver la decisión del aviso de conexión), sin tapar la lista.
+Cada ciclo le reporta a ese módulo cómo salió: `exito()` o `fallo()`.
 **Why:** 4s alcanza para un salón y evita la infraestructura de websockets.
 Sin la guarda, dos ciclos solapados con la API lenta pueden repintar en orden
 invertido y mostrar un estado viejo. Y un error que tape la lista deja al
 cliente peor que un dato de hace unos segundos.
-**Where:** `app.js` (`ciclo`), `panel.js` (`refrescar`).
-**Learned:** 2026-09-03.
+**Where:** `app.js` (`ciclo`), `panel.js` (`refrescar`), `conexion.js`.
+**Learned:** 2026-09-03. Al agregar una llamada nueva a un ciclo, va dentro del
+`Promise.all` que ya existe: "actualización buena" es todo-o-nada, y de eso
+depende que el aviso de conexión no mienta.
 
 ## La pantalla del cliente actualiza sola con el mismo patrón que panel.js: setInterval de 4…
 
-What: La pantalla del cliente actualiza sola con el mismo patrón que panel.js: setInterval de 4s, con guarda para que no se solapen dos ciclos, y pinta desde un mapa de 'último estado conocido' en memoria en vez de repintar directo desde la respuesta HTTP. · Why: — · Where: app.js, panel.js. · Learned: si un ciclo de polling falla (API caída), no se repinta nada — la lista queda con el último estado conocido y aparece un aviso discreto ('sin conexión') en vez de vaciar la pantalla o tapar todo con un error. <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-4 -->
+What: La pantalla del cliente actualiza sola con el mismo patrón que panel.js: setInterval de 4s, con guarda para que no se solapen dos ciclos, y pinta desde un mapa de 'último estado conocido' en memoria en vez de repintar directo desde la respuesta HTTP. · Why: — · Where: app.js, panel.js. · Learned: si un ciclo de polling falla (API caída), no se repinta nada — la lista queda con el último estado conocido y aparece un aviso discreto arriba de la lista en vez de vaciar la pantalla o tapar todo con un error (desde 2026-09-04 ese aviso lo maneja conexion.js: recién a los 3 ciclos fallidos y con el tiempo desde la última actualización buena). <!-- id: b53ff0d5-1751-4aa2-a3bc-4b1d6c7d280b-4 -->
 
 ## En la lista de pedidos del cliente, los estados activos (pedido, en_preparacion, listo_pa…
 

@@ -1,4 +1,5 @@
 import { ETIQUETAS, esCerrado } from "./estados.js";
+import { crearAvisoDeConexion } from "./conexion.js";
 
 // La API se puede apuntar con ?api=... para probar contra otro puerto sin tocar
 // código. Sin eso, el localhost de siempre.
@@ -173,6 +174,13 @@ async function main() {
 
     pintarCarta(carta);
 
+    // Mismo aviso y mismo texto que el panel del mozo: que lo esté mirando el
+    // cliente o el mozo no cambia lo que pasó ni cómo se cuenta. La carga que
+    // se acaba de hacer cuenta como la primera actualización buena —sus tres
+    // rutas respondieron—, así que si la API se cae antes del primer ciclo del
+    // poll el aviso igual tiene desde cuándo contar.
+    const conexion = crearAvisoDeConexion($("conexion"), Date.now());
+
     // Un solo ciclo a la vez: con la API lenta, dos poll solapados pueden
     // repintar en orden invertido y mostrar un estado viejo.
     let enVuelo = false;
@@ -181,11 +189,13 @@ async function main() {
       enVuelo = true;
       try {
         await refrescarPedidos($("mesa").value, nombreMozo);
-        $("conexion").textContent = "";
+        conexion.exito();
       } catch {
         // Se mantiene lo último conocido y se avisa al margen. Un error que
         // tape la lista deja al cliente peor que un dato de hace unos segundos.
-        $("conexion").textContent = "sin conexión";
+        // El aviso recién sale a los 3 ciclos fallidos: un fallo suelto es
+        // ruido de red y hacerlo parpadear sería peor que no decir nada.
+        conexion.fallo();
       } finally {
         enVuelo = false;
       }

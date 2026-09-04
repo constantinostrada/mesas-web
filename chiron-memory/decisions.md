@@ -99,3 +99,31 @@ previos a `en_camino`", pero `en_camino` NO existe en esta máquina de estados:
 el estado en que el plato ya salió de la cocina y llegó a la mesa es `servido`,
 y se implementó con ese mapeo (`en_camino` ≡ `servido`). `listo_para_servir` sí
 es cancelable: el plato está emplatado pero todavía en la cocina.
+
+## El aviso de conexión cortada: 3 ciclos para aparecer, 1 para irse, en franja reservada
+
+**What:** `conexion.js` es el único lugar donde vive el aviso de "los datos que
+estás mirando dejaron de actualizarse", y las dos pantallas lo usan igual:
+`crearAvisoDeConexion(nodo)` con `exito()` / `fallo()` por ciclo del poll.
+Aparece recién al 3er ciclo fallido consecutivo (≈12s), se va con un único
+ciclo bueno, y el tiempo que muestra se cuenta desde la última actualización
+buena —no desde que apareció—, redondeado en lenguaje humano ("hace 30
+segundos") y con reloj propio de 1s que no depende de la API. El nodo
+`#conexion` está siempre en el marcado con alto reservado (`min-height`, una
+línea): vacío cuando todo anda bien.
+**Why:** Asimétrico a propósito: un fallo aislado es ruido normal de red y
+avisar al primero hace parpadear el aviso, pero cuando la conexión vuelve no
+hay nada que confirmar. El tiempo se cuenta desde la última actualización buena
+porque lo que el usuario necesita saber es la antigüedad del dato que está
+mirando, no la del aviso (por eso arranca en ~12s y no en cero). Y el alto va
+reservado porque insertar el nodo al vuelo corre la lista justo cuando el mozo
+va a tocar un botón.
+**Where:** `conexion.js`, `app.js` (`ciclo`), `panel.js` (`refrescar`),
+`index.html` / `panel.html` (`#conexion`), `styles.css` (`.conexion`).
+**Learned:** 2026-09-04. Tres cosas que no son obvias: si la pantalla nunca
+tuvo una carga buena el aviso NO aparece (queda el error de carga inicial, que
+dice algo más útil que un "desde hace X" sin referencia); el error puntual de
+cambiar un estado va a `#msg` y no toca el contador de fallos del poll, así que
+son dos mensajes que se ven a la vez; y debajo de 320px de viewport la frase
+completa se iría a dos líneas y crecería la franja, así que una media query
+esconde `.detalle` en vez de dejar que el contenido salte.
