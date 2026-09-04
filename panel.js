@@ -96,7 +96,12 @@ async function main() {
         const r = await fetch(`${API}/pedidos/${b.dataset.id}/${accion}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify(destino === "cancelado" ? {} : { estado: destino }),
+          // Quién toca el botón es quien está mirando el panel: el mozo del
+          // selector. La API lo exige para poder decir después quién cambió
+          // el estado y cuándo.
+          body: JSON.stringify(
+            destino === "cancelado" ? {} : { estado: destino, mozo_id: $("mozo").value },
+          ),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
