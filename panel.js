@@ -65,10 +65,10 @@ function pintar(pedidos, mesas) {
       return `
         <div class="tarjeta${listo ? " listo" : ""}">
           <div class="fila">
-            <div class="crece"><strong>Mesa ${numero(p.mesa_id)}</strong> · ${p.id}</div>
+            <div class="crece mesa-numero">Mesa ${numero(p.mesa_id)}</div>
             <span class="estado${listo ? " listo" : ""}">${etiqueta}</span>
           </div>
-          <div class="sub" style="margin:6px 0">${items}</div>
+          <div class="sub" style="margin:6px 0">${p.id} · ${items}</div>
           <div class="fila">
             <span class="precio crece">$${money(total(p))}</span>
             ${acciones}

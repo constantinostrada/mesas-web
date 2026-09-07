@@ -42,6 +42,17 @@ main { padding: 8px 16px; max-width: 640px; margin: 0 auto; }
   padding-left: 10px;
 }
 .fila { display: flex; align-items: center; gap: 12px; }
+/* El mozo tiene que leer el número de mesa de un vistazo a un metro de
+   distancia (regla de oficio: ~1mm de glifo por cada 10cm → ~10mm a un metro).
+   Por eso 48px, más grande que el h1: es intencional, no lo "normalicen" a la
+   jerarquía tipográfica general. */
+.mesa-numero {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
 .crece { flex: 1; min-width: 0; }
 .plato { font-weight: 600; }
 .precio { color: var(--tenue); font-variant-numeric: tabular-nums; }
