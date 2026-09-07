@@ -4,15 +4,11 @@
 Un campo corto junto a cada plato, y mostrarla en el panel del mozo.
 **Empieza en:** `mesas-shared`. **Toca también:** `mesas-api`.
 
-## Pedir la carta a la API en vez de tenerla copiada
-Hoy `index.html` la trae de `/carta`, pero el panel duplica etiquetas y
-transiciones. Cuando la carta salga a un archivo, esto se simplifica.
-**Toca también:** `mesas-api`.
-
-## Que el cliente vea el estado de su pedido
-Después de pedir sólo ve "enviado". No tiene forma de saber si ya está en
-preparación sin preguntarle al mozo.
-**Toca también:** `mesas-api` (buscar pedidos por mesa).
+## Publicar `mesas-shared` como paquete
+Dentro de este repo el vocabulario de estados ya vive una sola vez, en
+`estados.js`, pero sigue duplicado entre `mesas-shared`, `mesas-api` y acá.
+Hoy `mesas-shared` ni conoce `listo_para_servir`.
+**Empieza en:** `mesas-shared`. **Toca también:** `mesas-api`.
 
 ## Dividir la cuenta
 Al pagar, poder partir el total entre varias personas.

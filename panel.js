@@ -1,26 +1,8 @@
+import { TRANSICIONES, ETIQUETAS } from "./estados.js";
+import { crearAvisoDeConexion } from "./conexion.js";
 const API = new URL(location.href).searchParams.get("api") ?? "http://localhost:4000";
 const $ = (id) => document.getElementById(id);
 const money = (n) => n.toLocaleString("es-AR");
-
-// Copia del contrato de mesas-shared, igual que en la API. Duplicada hasta que
-// ese repo se publique como paquete: hoy un estado nuevo hay que agregarlo en
-// los tres lados y nada avisa si falta uno.
-const TRANSICIONES = {
-  pedido: ["en_preparacion", "cancelado"],
-  en_preparacion: ["listo_para_servir", "cancelado"],
-  listo_para_servir: ["servido", "cancelado"],
-  servido: ["pagado"],
-  pagado: [],
-  cancelado: [],
-};
-const ETIQUETAS = {
-  pedido: "Pedido",
-  en_preparacion: "En preparación",
-  listo_para_servir: "Listo para servir",
-  servido: "Servido",
-  pagado: "Pagado",
-  cancelado: "Cancelado",
-};
 
 const total = (p) => p.items.reduce((t, i) => t + i.precio_unitario * i.cantidad, 0);
 
@@ -39,7 +21,12 @@ const ACCION_PRINCIPAL = {
   servido: "pagado",
 };
 
-function pintar(pedidos, mesas) {
+function pintar(todos, mesas) {
+  // Un pedido cancelado ya no es trabajo del mozo, así que sale de la pantalla
+  // en el primer poll posterior a la cancelación, sin que tenga que recargar.
+  // Se filtra acá y no en `GET /pedidos` porque la pantalla del cliente sí
+  // tiene que mostrarlo: es cómo se entera de que su plato no viene.
+  const pedidos = todos.filter((p) => p.estado !== "cancelado");
   if (pedidos.length === 0) {
     $("pedidos").innerHTML = `<p class="aviso">Todavía no hay pedidos para este mozo.</p>`;
     return;
@@ -55,7 +42,10 @@ function pintar(pedidos, mesas) {
       const acciones = (TRANSICIONES[p.estado] ?? [])
         .map((e) => {
           const clase = e === ACCION_PRINCIPAL[p.estado] ? ' class="primario"' : "";
-          return `<button${clase} data-id="${p.id}" data-a="${e}">${ETIQUETAS[e]}</button>`;
+          // El botón dice lo que hace, no a qué estado lleva: "Cancelar", no
+          // "Cancelado". Los demás coinciden con su etiqueta y no hace falta.
+          const rotulo = e === "cancelado" ? "Cancelar" : ETIQUETAS[e];
+          return `<button${clase} data-id="${p.id}" data-a="${e}">${rotulo}</button>`;
         })
         .join(" ");
       const items = p.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(", ");
@@ -78,13 +68,22 @@ function pintar(pedidos, mesas) {
     .join("");
 }
 
+// Se crea acá arriba y no dentro de main() porque refrescar() —que corre desde
+// el poll, desde el selector y después de cambiar un estado— es quien reporta
+// cómo salió cada ciclo.
+const conexion = crearAvisoDeConexion($("conexion"));
+
 async function refrescar() {
   const mozo_id = $("mozo").value;
+  // Promise.all: si cualquiera de las dos rutas falla no se pinta nada, así que
+  // "actualización buena" es todo-o-nada y el ciclo se cuenta como fallido
+  // aunque la otra ruta haya respondido bien.
   const [{ pedidos }, { mesas }] = await Promise.all([
     traer(`/pedidos?mozo_id=${encodeURIComponent(mozo_id)}`),
     traer("/mesas"),
   ]);
   pintar(pedidos, mesas);
+  conexion.exito();
 }
 
 async function main() {
@@ -93,17 +92,26 @@ async function main() {
     $("mozo").innerHTML = mozos
       .map((m) => `<option value="${m.id}">${m.nombre}${m.activo ? "" : " (inactivo)"}</option>`)
       .join("");
-    $("mozo").addEventListener("change", refrescar);
+    $("mozo").addEventListener("change", () => refrescar().catch(conexion.fallo));
 
     $("pedidos").addEventListener("click", async (e) => {
       const b = e.target.closest("button[data-a]");
       if (!b) return;
+      const destino = b.dataset.a;
+      // Cancelar va por su propio endpoint y sin destino: no es un cambio de
+      // estado más, es dar el pedido de baja.
+      const accion = destino === "cancelado" ? "cancelar" : "estado";
       b.disabled = true;
       try {
-        const r = await fetch(`${API}/pedidos/${b.dataset.id}/estado`, {
+        const r = await fetch(`${API}/pedidos/${b.dataset.id}/${accion}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ estado: b.dataset.a }),
+          // Quién toca el botón es quien está mirando el panel: el mozo del
+          // selector. La API lo exige para poder decir después quién cambió
+          // el estado y cuándo.
+          body: JSON.stringify(
+            destino === "cancelado" ? {} : { estado: destino, mozo_id: $("mozo").value },
+          ),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error ?? `HTTP ${r.status}`);
@@ -118,7 +126,9 @@ async function main() {
     await refrescar();
     // Sin websockets: el mozo necesita ver los pedidos nuevos sin recargar, y
     // un poll cada 4s es suficiente para un salón.
-    setInterval(() => refrescar().catch(() => {}), 4000);
+    // El fallo ya no es silencioso: se cuenta, y a los 3 seguidos la franja de
+    // arriba dice desde cuándo lo que está en pantalla dejó de actualizarse.
+    setInterval(() => refrescar().catch(conexion.fallo), 4000);
   } catch (err) {
     $("msg").className = "aviso error";
     $("msg").textContent = `No se pudo hablar con la API (${API}). ¿Está corriendo? — ${err.message}`;
