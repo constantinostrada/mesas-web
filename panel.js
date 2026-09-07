@@ -52,10 +52,13 @@ function pintar(todos, mesas) {
       // La campana además del color: el panel se mira de reojo y con la pantalla
       // al sol, donde el verde y el gris se parecen más de lo que uno cree.
       const etiqueta = listo ? `🔔 ${ETIQUETAS[p.estado]}` : ETIQUETAS[p.estado];
+      const n = numero(p.mesa_id);
+      const sinMesa = n === "?";
+      const claseMesa = sinMesa ? " mesa-numero--sin-mesa" : n >= 10 ? " mesa-numero--ancho" : "";
       return `
         <div class="tarjeta${listo ? " listo" : ""}">
           <div class="fila">
-            <div class="crece mesa-numero">Mesa ${numero(p.mesa_id)}</div>
+            <div class="crece mesa-numero${claseMesa}">Mesa ${sinMesa ? "—" : n}</div>
             <span class="estado${listo ? " listo" : ""}">${etiqueta}</span>
           </div>
           <div class="sub" style="margin:6px 0">${p.id} · ${items}</div>

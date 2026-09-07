@@ -53,6 +53,12 @@ main { padding: 8px 16px; max-width: 640px; margin: 0 auto; }
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+/* Con dos dígitos (mesa 10 en adelante) los 48px ensanchan la tarjeta en
+   pantalla de teléfono; se baja a 40px sólo en ese caso. */
+.mesa-numero--ancho { font-size: 40px; }
+/* Mesa desconocida (el poll trajo un pedido cuya mesa no está en /mesas):
+   "Mesa —" atenuado, para que un dato ausente no grite como un número real. */
+.mesa-numero--sin-mesa { color: var(--tenue); }
 .crece { flex: 1; min-width: 0; }
 .plato { font-weight: 600; }
 .precio { color: var(--tenue); font-variant-numeric: tabular-nums; }
